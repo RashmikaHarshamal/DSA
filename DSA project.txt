@@ -1,0 +1,469 @@
+//Program.......................
+
+using ClinicalSystem;
+
+class Program
+{
+    static void Main(string[] args)
+    {
+
+        // Initialize the data (add doctors and patients silently)
+        var cms = new ClinicalManagementSystem();
+        DataInitializer.InitializeSampleData(cms);  // Initialize the sample data silently
+
+
+        bool exit = false;
+
+        while (!exit)
+        {
+            Console.WriteLine("\n--- Clinical Management System Menu ---");
+            Console.WriteLine("1. Add Doctor");
+            Console.WriteLine("2. Add Patient");
+            Console.WriteLine("3. Schedule Appointment");
+            Console.WriteLine("4. View Appointments");
+            Console.WriteLine("5. View Doctors");
+            Console.WriteLine("6. View Patients");
+            Console.WriteLine("7. Search Doctor by Name");
+            Console.WriteLine("8. Search Patient by Name");
+            Console.WriteLine("9. Manage Inventory");
+            Console.WriteLine("10. Exit");
+            Console.Write("Enter your choice: ");
+
+            var choice = Console.ReadLine();
+
+            switch (choice)
+            {
+                case "1":
+                    Console.Write("Enter Doctor Name: ");
+                    string doctorName = Console.ReadLine();
+                    Console.Write("Enter Specialization: ");
+                    string specialization = Console.ReadLine();
+                    Doctor newDoctor = new Doctor(doctorName, specialization);
+                    cms.AddDoctor(newDoctor);
+                    break;
+
+                case "2":
+                    Console.Write("Enter Patient Name: ");
+                    string patientName = Console.ReadLine();
+                    Console.Write("Enter Age: ");
+                    if (int.TryParse(Console.ReadLine(), out int age))
+                    {
+                        Patient newPatient = new Patient(patientName, age);
+                        cms.AddPatient(newPatient);
+                    }
+                    else
+                    {
+                        Console.WriteLine("Invalid input for age. Please enter a number.");
+                    }
+                    break;
+
+                case "3":
+                    Console.Write("Enter Doctor ID: ");
+                    if (!int.TryParse(Console.ReadLine(), out int doctorId))
+                    {
+                        Console.WriteLine("Invalid Doctor ID.");
+                        break;
+                    }
+                    Console.Write("Enter Patient ID: ");
+                    if (!int.TryParse(Console.ReadLine(), out int patientId))
+                    {
+                        Console.WriteLine("Invalid Patient ID.");
+                        break;
+                    }
+                    Console.Write("Enter Appointment Date (yyyy-MM-dd HH:mm): ");
+                    if (DateTime.TryParse(Console.ReadLine(), out DateTime date))
+                    {
+                        cms.ScheduleAppointment(doctorId, patientId, date);
+                    }
+                    else
+                    {
+                        Console.WriteLine("Invalid date format.");
+                    }
+                    break;
+
+                case "4":
+                    cms.GetAppointments();
+                    break;
+
+                case "5":
+                    cms.GetDoctors();
+                    break;
+
+                case "6":
+                    cms.GetPatients();
+                    break;
+
+                case "7":
+                    Console.Write("Enter Doctor Name to Search: ");
+                    string doctorSearchName = Console.ReadLine();
+                    cms.SearchDoctorByName(doctorSearchName);
+                    break;
+
+                case "8":
+                    Console.Write("Enter Patient Name to Search: ");
+                    string patientSearchName = Console.ReadLine();
+                    cms.SearchPatientByName(patientSearchName);
+                    break;
+
+                case "9":
+                    ManageInventory(cms);
+                    break;
+
+                case "10":
+                    exit = true;
+                    Console.WriteLine("Exiting the system. Goodbye!");
+                    break;
+
+                default:
+                    Console.WriteLine("Invalid choice. Please try again.");
+                    break;
+            }
+        }
+    }
+    static void ManageInventory(ClinicalManagementSystem cms)
+    {
+        bool back = false;
+        while (!back)
+        {
+            Console.WriteLine("\n--- Manage Inventory ---");
+            Console.WriteLine("1. View Inventory");
+            Console.WriteLine("2. Add Inventory Item");
+            Console.WriteLine("3. Update Inventory Quantity");
+            Console.WriteLine("4. Sort Inventory by Quantity");
+            Console.WriteLine("5. Back to Main Menu");
+            Console.Write("Enter your choice: ");
+
+            var choice = Console.ReadLine();
+            switch (choice)
+            {
+                case "1":
+                    cms.GetInventoryItems();
+                    break;
+                case "2":
+                    Console.Write("Enter Inventory Item Name: ");
+                    string itemName = Console.ReadLine();
+                    Console.Write("Enter Quantity: ");
+                    if (int.TryParse(Console.ReadLine(), out int quantity))
+                    {
+                        InventoryItem newItem = new InventoryItem(itemName, quantity);
+                        cms.AddInventoryItem(newItem);
+                    }
+                    else
+                    {
+                        Console.WriteLine("Invalid quantity. Please enter a number.");
+                    }
+                    break;
+                case "3":
+                    Console.Write("Enter Inventory Item ID to update quantity: ");
+                    if (int.TryParse(Console.ReadLine(), out int itemId))
+                    {
+                        Console.Write("Enter quantity change (positive to increase, negative to decrease): ");
+                        if (int.TryParse(Console.ReadLine(), out int change))
+                        {
+                            cms.UpdateInventoryQuantity(itemId, change);
+                        }
+                        else
+                        {
+                            Console.WriteLine("Invalid input. Enter a number.");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Invalid ID. Please enter a number.");
+                    }
+                    break;
+                case "4":
+                    cms.SortInventoryByQuantity();
+                    break;
+                case "5":
+                    back = true;
+                    break;
+                default:
+                    Console.WriteLine("Invalid choice. Please try again.");
+                    break;
+            }
+        }
+    }
+}
+
+
+
+//Class.........................
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.IO;
+
+namespace ClinicalSystem
+{
+    public class Doctor
+    {
+        private static int nextId = 1111;
+        public int Id { get; }
+        public string Name { get; set; }
+        public string Specialization { get; set; }
+
+        public Doctor(string name, string specialization)
+        {
+            Id = nextId++;
+            Name = name;
+            Specialization = specialization;
+        }
+    }
+
+    public class Patient
+    {
+        private static int nextId = 1111;
+        public int Id { get; }
+        public string Name { get; set; }
+        public int Age { get; set; }
+
+        public Patient(string name, int age)
+        {
+            Id = nextId++;
+            Name = name;
+            Age = age;
+        }
+    }
+
+    public class Appointment
+    {
+        private static int nextId = 1001;
+        public int Id { get; }
+        public int DoctorId { get; set; }
+        public int PatientId { get; set; }
+        public DateTime Date { get; set; }
+
+        public Appointment(int doctorId, int patientId, DateTime date)
+        {
+            Id = nextId++;
+            DoctorId = doctorId;
+            PatientId = patientId;
+            Date = date;
+        }
+    }
+    public class InventoryItem
+    {
+        private static int nextId = 5001;
+        public int Id { get; }
+        public string Name { get; set; }
+        public int Quantity { get; set; }
+
+        public InventoryItem(string name, int quantity)
+        {
+            Id = nextId++;
+            Name = name;
+            Quantity = quantity;
+        }
+    }
+
+    public class ClinicalManagementSystem
+    {
+        private LinkedList<Doctor> Doctors = new LinkedList<Doctor>();
+        private LinkedList<Patient> Patients = new LinkedList<Patient>();
+        private LinkedList<Appointment> Appointments = new LinkedList<Appointment>();
+        private LinkedList<InventoryItem> Inventory = new LinkedList<InventoryItem>();
+
+        // Modify AddDoctor to accept a silent parameter
+        public void AddDoctor(Doctor doctor, bool silent = false)
+        {
+            Doctors.AddLast(doctor);
+            if (!silent)
+            {
+                Console.WriteLine($"Doctor {doctor.Name} added successfully with ID: {doctor.Id}.");
+            }
+        }
+
+        // Modify AddPatient to accept a silent parameter
+        public void AddPatient(Patient patient, bool silent = false)
+        {
+            Patients.AddLast(patient);
+            if (!silent)
+            {
+                Console.WriteLine($"Patient {patient.Name} added successfully with ID: {patient.Id}.");
+            }
+        }
+
+        public void ScheduleAppointment(int doctorId, int patientId, DateTime date)
+        {
+            var doctor = Doctors.FirstOrDefault(d => d.Id == doctorId);
+            var patient = Patients.FirstOrDefault(p => p.Id == patientId);
+
+            if (doctor == null)
+            {
+                Console.WriteLine("Error: Doctor not found.");
+                return;
+            }
+            if (patient == null)
+            {
+                Console.WriteLine("Error: Patient not found.");
+                return;
+            }
+            if (Appointments.Any(a => a.DoctorId == doctorId && a.Date == date))
+            {
+                Console.WriteLine("Error: Doctor is already booked for this time slot.");
+                return;
+            }
+            if (Appointments.Any(a => a.PatientId == patientId && a.Date == date))
+            {
+                Console.WriteLine("Error: Patient already has an appointment at this time.");
+                return;
+            }
+
+            Appointment appointment = new Appointment(doctorId, patientId, date);
+            Appointments.AddLast(appointment);
+            Console.WriteLine($"Appointment scheduled successfully with ID: {appointment.Id}.");
+        }
+
+        public void GetAppointments()
+        {
+            if (!Appointments.Any())
+            {
+                Console.WriteLine("No appointments scheduled.");
+                return;
+            }
+            foreach (var appointment in Appointments)
+            {
+                Console.WriteLine($"Appointment ID: {appointment.Id}, Doctor ID: {appointment.DoctorId}, Patient ID: {appointment.PatientId}, Date: {appointment.Date}");
+            }
+        }
+
+        public void GetDoctors()
+        {
+            if (!Doctors.Any())
+            {
+                Console.WriteLine("No doctors registered.");
+                return;
+            }
+            foreach (var doctor in Doctors)
+            {
+                Console.WriteLine($"Doctor ID: {doctor.Id}, Name: {doctor.Name}, Specialization: {doctor.Specialization}");
+            }
+        }
+
+        public void GetPatients()
+        {
+            if (!Patients.Any())
+            {
+                Console.WriteLine("No patients registered.");
+                return;
+            }
+            foreach (var patient in Patients)
+            {
+                Console.WriteLine($"Patient ID: {patient.Id}, Name: {patient.Name}, Age: {patient.Age}");
+            }
+        }
+
+        public void SearchDoctorByName(string name)
+        {
+            var doctors = Doctors.Where(d => d.Name.Contains(name, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (!doctors.Any())
+            {
+                Console.WriteLine("No doctors found with the provided name.");
+                return;
+            }
+            foreach (var doctor in doctors)
+            {
+                Console.WriteLine($"Doctor ID: {doctor.Id}, Name: {doctor.Name}, Specialization: {doctor.Specialization}");
+            }
+        }
+
+        public void SearchPatientByName(string name)
+        {
+            var patients = Patients.Where(p => p.Name.Contains(name, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (!patients.Any())
+            {
+                Console.WriteLine("No patients found with the provided name.");
+                return;
+            }
+            foreach (var patient in patients)
+            {
+                Console.WriteLine($"Patient ID: {patient.Id}, Name: {patient.Name}, Age: {patient.Age}");
+            }
+        }
+        public void AddInventoryItem(InventoryItem item)
+        {
+            Inventory.AddLast(item);
+            Console.WriteLine($"Inventory Item {item.Name} added with ID: {item.Id}, Quantity: {item.Quantity}.");
+        }
+
+        public void GetInventoryItems()
+        {
+            if (!Inventory.Any())
+            {
+                Console.WriteLine("No inventory items available.");
+                return;
+            }
+            foreach (var item in Inventory)
+            {
+                Console.WriteLine($"ID: {item.Id}, Name: {item.Name}, Quantity: {item.Quantity}");
+            }
+        }
+
+        public void UpdateInventoryQuantity(int id, int change)
+        {
+            var item = Inventory.FirstOrDefault(i => i.Id == id);
+            if (item != null)
+            {
+                item.Quantity += change;
+                if (item.Quantity < 0) item.Quantity = 0;
+                Console.WriteLine($"Inventory Item {item.Name} updated. New Quantity: {item.Quantity}");
+            }
+            else
+            {
+                Console.WriteLine("Item not found.");
+            }
+        }
+
+        public void SortInventoryByQuantity()
+        {
+            var sortedInventory = Inventory.OrderByDescending(i => i.Quantity).ToList();
+            Inventory = new LinkedList<InventoryItem>(sortedInventory);
+            Console.WriteLine("Inventory sorted by quantity (descending order).");
+            GetInventoryItems();
+        }
+    }    
+}
+
+//Initialization............................
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace ClinicalSystem
+{
+    public class DataInitializer
+    {
+        // Method to initialize sample data without displaying console messages
+        public static void InitializeSampleData(ClinicalManagementSystem cms)
+        {
+            // Adding doctors without console messages
+            cms.AddDoctor(new Doctor("Dr. John Smith", "Cardiologist"), silent: true);
+            cms.AddDoctor(new Doctor("Dr. Alice Brown", "Dermatologist"), silent: true);
+            cms.AddDoctor(new Doctor("Dr. Emma White", "Pediatrician"), silent: true);
+
+            // Adding patients without console messages
+            cms.AddPatient(new Patient("Michael Johnson", 45), silent: true);
+            cms.AddPatient(new Patient("Sophia Williams", 29), silent: true);
+            cms.AddPatient(new Patient("James Brown", 34), silent: true);
+
+            //Adding Inventory
+            cms.AddInventoryItem(new InventoryItem("Syringes", 100));
+            cms.AddInventoryItem(new InventoryItem("Gloves", 200));
+            cms.AddInventoryItem(new InventoryItem("Masks", 150));
+
+
+        } 
+    }
+}
+
+
+
+//Path...........................
+
+C:\Users\sithu\source\repos\ConsoleApp18\ConsoleApp18
+
